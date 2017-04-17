@@ -583,7 +583,8 @@ class DagFileProcessorManager(LoggingMixin):
 
         # Generate more file paths to process if we processed all the files
         # already.
-        if len(self._file_path_queue) == 0:
+        if len(self._file_path_queue) < (self._parallelism - len(self._processors)) \
+                and not self.max_runs_reached():
             # If the file path is already being processed, or if a file was
             # processed recently, wait until the next batch
             file_paths_in_progress = self._processors.keys()
@@ -596,19 +597,18 @@ class DagFileProcessorManager(LoggingMixin):
                         self._process_file_interval):
                     file_paths_recently_processed.append(file_path)
 
-            files_paths_at_run_limit = [file_path
-                                        for file_path, num_runs in self._run_count.items()
-                                        if num_runs == self._max_runs]
-
             files_paths_to_queue = list(set(self._file_paths) -
                                         set(file_paths_in_progress) -
                                         set(file_paths_recently_processed) -
-                                        set(files_paths_at_run_limit))
+                                        set(self._file_path_queue))
 
             for file_path, processor in self._processors.items():
                 self.logger.debug("File path {} is still being processed (started: {})"
                                   .format(processor.file_path,
                                           processor.start_time.isoformat()))
+
+            # Sort the new files to enforce some sense of fairness
+            files_paths_to_queue = sorted(files_paths_to_queue, cmp=self._get_file_paths_comparator())
 
             self.logger.debug("Queuing the following files for processing:\n\t{}"
                               .format("\n\t".join(files_paths_to_queue)))
@@ -643,11 +643,16 @@ class DagFileProcessorManager(LoggingMixin):
         if self._max_runs == -1:  # Unlimited runs.
             return False
         for file_path in self._file_paths:
-            if self._run_count[file_path] != self._max_runs:
+            if self._run_count[file_path] < self._max_runs:
                 return False
         if self._run_count[self._heart_beat_key] < self._max_runs:
             return False
         return True
+
+    def processing_is_complete(self):
+        return self.max_runs_reached() and \
+            len(self._processors) == 0 and \
+            len(self._file_path_queue) == 0
 
     def terminate(self):
         """
@@ -656,3 +661,32 @@ class DagFileProcessorManager(LoggingMixin):
         """
         for processor in self._processors.values():
             processor.terminate()
+
+    def _get_file_paths_comparator(self):
+        def _comparator(path1, path2):
+            """
+            If a file path has reached the max_run limit, file paths that have not been processed
+            max_run times should get priority.  If both file paths are comparable in comparison to
+            the max_runs metric, the one that has gone the longest since running should be given
+            priority.
+            :param path1: string for first file path to compare
+            :param path2: string for second file path to compare
+            :return: -1 if path1 is prioritized over path2, 0 if no difference, 1 if path2 is prioritized
+            """
+            path1_max_runs_reached = self._max_runs[path1] >= self._max_runs and self._max_runs > 0
+            path2_max_runs_reached = self._max_runs[path2] >= self._max_runs and self._max_runs > 0
+            if path1_max_runs_reached == path2_max_runs_reached:
+                path1_last_run = self.get_last_finish_time(path1) if self.get_last_finish_time(path1) else 0
+                path2_last_run = self.get_last_finish_time(path2) if self.get_last_finish_time(path2) else 0
+                if path1_last_run > path2_last_run:
+                    return 1
+                elif path1_last_run < path2_last_run:
+                    return -1
+                else:
+                    return 0
+            elif path1_max_runs_reached:
+                return 1
+            else:
+                return -1
+
+        return _comparator

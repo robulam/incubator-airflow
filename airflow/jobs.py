@@ -1462,12 +1462,12 @@ class SchedulerJob(BaseJob):
             loop_end_time = time.time()
             self.logger.debug("Ran scheduling loop in {:.2f}s"
                               .format(loop_end_time - loop_start_time))
-            self.logger.debug("Sleeping for {:.2f}s"
+            self.logger.info("Sleeping for {:.2f}s"
                               .format(self._processor_poll_interval))
             time.sleep(self._processor_poll_interval)
 
             # Exit early for a test mode
-            if processor_manager.max_runs_reached():
+            if processor_manager.processing_is_complete():
                 self.logger.info("Exiting loop as all files have been processed "
                                  "{} times".format(self.num_runs))
                 break
