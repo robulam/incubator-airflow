@@ -882,14 +882,15 @@ class TaskInstance(Base):
                 self.state in State.runnable() and
                 self.are_dependencies_met(
                     ignore_depends_on_past=ignore_depends_on_past,
-                    flag_upstream_failed=flag_upstream_failed)):
-            logging.debug("Dag ID: {}. Task ID: {}. Queueable: the task is runnable and has its dependencies been met"
-                          .format(self.dag_id, self.task_id))
+                    flag_upstream_failed=flag_upstream_failed,
+                    verbose=True)):
+            logging.debug("Dag ID: {}. Task ID: {}. State: {}. Queueable: the task is queueable & dependencies are met"
+                          .format(self.dag_id, self.task_id, self.state))
             return True
         # anything else
         else:
-            logging.debug("Dag ID: {}. Task ID: {}. Not queueable: no condition check is met."
-                          .format(self.dag_id, self.task_id))
+            logging.debug("Dag ID: {}. Task ID: {}. State: {}. Not queueable: no condition check is met."
+                          .format(self.dag_id, self.task_id, self.state))
             return False
 
     def is_premature(self):
