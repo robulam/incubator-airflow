@@ -892,7 +892,6 @@ class TaskInstance(Base):
                           .format(self.dag_id, self.task_id))
             return False
 
-
     def is_premature(self):
         """
         Returns whether a task is in UP_FOR_RETRY state and its retry interval
