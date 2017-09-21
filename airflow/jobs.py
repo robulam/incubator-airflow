@@ -523,12 +523,12 @@ class SchedulerJob(BaseJob):
                     State.RUNNING, State.QUEUED, State.SUCCESS, State.FAILED):
                 continue
             elif ti.is_runnable(flag_upstream_failed=True):
-                self.logger.debug('Queuing task: {}'.format(ti))
+                self.logger.info('Queuing task: {}'.format(ti))
                 queue.put((ti.key, pickle_id))
             elif ti.is_premature():
                 continue
             else:
-                self.logger.debug('Adding task: {} to the COULD_NOT_RUN set'.format(ti))
+                self.logger.info('Adding task: {} to the COULD_NOT_RUN set'.format(ti))
                 could_not_run.add(ti)
 
         # this type of deadlock happens when dagruns can't even start and so

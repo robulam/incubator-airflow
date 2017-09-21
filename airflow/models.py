@@ -1127,7 +1127,7 @@ class TaskInstance(Base):
                 "doesn't exist!".format(self.task.pool))
         open_slots = pool.open_slots(session=session)
 
-        logging.debug("Number of open slots in the {} pool: {}".format(self.task.pool, open_slots))
+        logging.info("Number of open slots in the {} pool: {}".format(self.task.pool, open_slots))
 
         return open_slots <= 0
 
