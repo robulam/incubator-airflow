@@ -574,8 +574,18 @@ class SchedulerJob(BaseJob):
             "Prioritizing {} queued jobs".format(len(queued_tis)))
         session.expunge_all()
         d = defaultdict(list)
+        ignored_dags = [
+            'long_running_test',
+            'presto_query_logs',
+            'redshift_replication_other',
+            'other',
+            'driver_propensity_v1',
+            'experimentation_metric_fraud',
+            'experimentation_metric_referral_pax',
+            'experimentation_metric_referral_dvr'
+        ]
         for ti in queued_tis:
-            if ti.dag_id in ['long_running_test', 'presto_query_logs', 'redshift_replication_other', 'other']:
+            if ti.dag_id in ignored_dags:
                 self.logger.info(
                     'Ignoring {} because this DAG is handled by the airflow 1.8 scheduler'.format(ti))
             elif ti.dag_id not in dagbag.dags:
