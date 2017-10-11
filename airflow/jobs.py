@@ -247,6 +247,13 @@ class SchedulerJob(BaseJob):
                 self.logger.error("Cannot use more than 1 thread when using sqlite. Setting max_threads to 1")
             self.max_threads = 1
 
+        # Temporary: remove once etl upgrade from 1.7 to 1.8 is complete
+        with open('/srv/service/current/canary_whitelist.txt', 'r') as f:
+            self.canary_whitelist = [entry.strip() for entry in f.readlines() if entry]
+
+        logging.info('Treating these {} DAGs as whitelisted for canary: {}'.format(
+                len(self.canary_whitelist), self.canary_whitelist))
+
     @provide_session
     def manage_slas(self, dag, session=None):
         """
@@ -574,18 +581,8 @@ class SchedulerJob(BaseJob):
             "Prioritizing {} queued jobs".format(len(queued_tis)))
         session.expunge_all()
         d = defaultdict(list)
-        ignored_dags = [
-            'long_running_test',
-            'presto_query_logs',
-            'redshift_replication_other',
-            'other',
-            'driver_propensity_v1',
-            'experimentation_metric_fraud',
-            'experimentation_metric_referral_pax',
-            'experimentation_metric_referral_dvr'
-        ]
         for ti in queued_tis:
-            if ti.dag_id in ignored_dags:
+            if ti.dag_id in self.canary_whitelist:
                 self.logger.info(
                     'Ignoring {} because this DAG is handled by the airflow 1.8 scheduler'.format(ti))
             elif ti.dag_id not in dagbag.dags:
