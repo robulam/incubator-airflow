@@ -207,7 +207,7 @@ def do_setup():
             'configparser>=3.5.0, <3.6.0',
             'croniter>=0.3.8, <0.4',
             'dill>=0.2.2, <0.3',
-            'flask>=0.11, <0.12',
+            'flask>=0.11, <=0.12.1',
             'flask-admin==1.4.1',
             'flask-cache>=0.13.1',
             'flask-login==0.2.11',
