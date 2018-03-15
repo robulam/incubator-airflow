@@ -187,12 +187,9 @@ def trigger_dag(args):
 
 def batch_set_pools(args):
     session = settings.Session()
-    print(type(args.names))
-    print(type(args.slots))
-    print(type(args.descriptions))
-    pool_names = args.names if isinstance(args.names, list) else args.names.split()
-    pool_slots = args.slots if isinstance(args.slots, list) else args.slots.split()
-    pool_descriptions = args.descriptions if isinstance(args.descriptions, list) else args.descriptions.split()
+    pool_names = args.names
+    pool_slots = args.slots
+    pool_descriptions = args.descriptions
     print("Number of pool names input: {}".format(len(pool_names)))
     print("Number of pool slots count input: {}".format(len(pool_slots)))
     print("Number of pool description input: {}".format(len(pool_descriptions)))
