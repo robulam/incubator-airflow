@@ -16,6 +16,7 @@ from builtins import object
 import logging
 import subprocess
 import time
+import os
 
 from celery import Celery
 from celery import states as celery_states
@@ -54,17 +55,14 @@ app = Celery(
 
 @app.task
 def execute_command(command):
-    logging.info("Executing command in Celery " + command)
+    logging.info("Executing command in Celery: %s", command)
+    env = os.environ.copy()
     try:
-        output = subprocess.check_output(
-            command,
-            shell=True,
-            close_fds=True,
-            stderr=subprocess.STDOUT,
-        )
-        logging.info(output)
+        subprocess.check_call(command, shell=True, stderr=subprocess.STDOUT,
+                              close_fds=True, env=env)
     except subprocess.CalledProcessError as e:
-        logging.error(e)
+        logging.exception('execute_command encountered a CalledProcessError')
+        logging.error(e.output)
         raise AirflowException('Celery command failed')
 
 
