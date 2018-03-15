@@ -187,9 +187,16 @@ def trigger_dag(args):
 
 def batch_set_pools(args):
     session = settings.Session()
-    pool_names = args.names
-    pool_slots = args.slots
-    pool_descriptions = args.descriptions
+    print(type(args.names))
+    print(type(args.slots))
+    print(type(args.descriptions))
+    pool_names = args.names if isinstance(args.names, list) else args.names.split()
+    pool_slots = args.slots if isinstance(args.slots, list) else args.slots.split()
+    pool_descriptions = args.descriptions if isinstance(args.descriptions, list) else args.descriptions.split()
+    print("Number of pool names input: {}".format(len(pool_names)))
+    print("Number of pool slots count input: {}".format(len(pool_slots)))
+    print("Number of pool description input: {}".format(len(pool_descriptions)))
+
     if len(pool_names) != len(pool_slots) or len(pool_names) != len(pool_descriptions):
         print("Numbers of names, pools, descriptions are not equal to each other")
     else:
@@ -213,7 +220,7 @@ def batch_set_pools(args):
         for pool_name, pool_metadata in pool_metadata_by_name.iteritems():
             pool = Pool(
                 pool=pool_name,
-                slots=pool_metadata.get('slots'),
+                slots=int(pool_metadata.get('slots')),
                 description=pool_metadata.get('description'))
             session.add(pool)
         session.commit()
