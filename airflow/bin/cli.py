@@ -191,7 +191,7 @@ def batch_set_pools(args):
     pool_slots = args.slots
     pool_descriptions = args.descriptions
     if len(pool_names) != len(pool_slots) or len(pool_names) != len(pool_descriptions):
-        print("Numbers of names, pool, descriptions are not equal to each other")
+        print("Numbers of names, pools, descriptions are not equal to each other")
     else:
         pool_metadata_by_name = dict()
         for i in range(len(pool_names)):
@@ -207,6 +207,7 @@ def batch_set_pools(args):
                 pool.slots = pool_metadata.get('slots')
                 pool.description = pool_metadata.get('description')
             else:
+                print("No need to update {} pool".format(pool.pool))
                 del pool_metadata_by_name[pool.pool]
 
         for pool_name, pool_metadata in pool_metadata_by_name.iteritems():
