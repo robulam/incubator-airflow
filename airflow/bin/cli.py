@@ -185,6 +185,39 @@ def trigger_dag(args):
     logging.info(message)
 
 
+def batch_set_pools(args):
+    session = settings.Session()
+    pool_names = args.names
+    pool_slots = args.slots
+    pool_descriptions = args.descriptions
+    if len(pool_names) != len(pool_slots) or len(pool_names) != len(pool_descriptions):
+        print("Numbers of names, pool, descriptions are not equal to each other")
+    else:
+        pool_metadata_by_name = dict()
+        for i in range(len(pool_names)):
+            pool_metadata_by_name[pool_names[i]] = {'slots': pool_slots[i],
+                                                    'description': pool_descriptions[i]}
+        existing_pools = (
+            session.query(Pool)
+            .filter(Pool.pool.in_(pool_names))
+            .all())
+        for pool in existing_pools:
+            pool_metadata = pool_metadata_by_name.get(pool.pool)
+            if pool_metadata.get('slots') != pool.slots or pool_metadata.get('description') != pool.description:
+                pool.slots = pool_metadata.get('slots')
+                pool.description = pool_metadata.get('description')
+            else:
+                del pool_metadata_by_name[pool.pool]
+
+        for pool_name, pool_metadata in pool_metadata_by_name.iteritems():
+            pool = Pool(
+                pool=pool_name,
+                slots=pool_metadata.get('slots'),
+                description=pool_metadata.get('description'))
+            session.add(pool)
+        session.commit()
+
+
 def pool(args):
     session = settings.Session()
     if args.get or (args.set and args.set[0]) or args.delete:
@@ -1262,6 +1295,20 @@ class CLIFactory(object):
             ("-x", "--delete"),
             metavar="NAME",
             help="Delete a pool"),
+        # batch_set_pools
+        'pool_names': Arg(
+            ("-n", "--names"),
+            nargs='+',
+            help="Pool names"),
+        'pool_slots': Arg(
+            ("-s", "--slots"),
+            nargs='+',
+            type=int,
+            help="Pool slot counts"),
+        'pool_descriptions': Arg(
+            ("-d", "--descriptions"),
+            nargs='+',
+            help="Pool descriptions"),
         # variables
         'set': Arg(
             ("-s", "--set"),
@@ -1502,6 +1549,10 @@ class CLIFactory(object):
             'func': pool,
             'help': "CRUD operations on pools",
             "args": ('pool_set', 'pool_get', 'pool_delete'),
+        }, {
+            'func': batch_set_pools,
+            'help': "CRUD operations on a batch of pools",
+            "args": ('pool_names', 'pool_slots', 'pool_descriptions'),
         }, {
             'func': variables,
             'help': "CRUD operations on variables",
