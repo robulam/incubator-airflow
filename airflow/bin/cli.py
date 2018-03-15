@@ -1304,7 +1304,6 @@ class CLIFactory(object):
         'pool_slots': Arg(
             ("-s", "--slots"),
             nargs='+',
-            type=int,
             help="Pool slot counts"),
         'pool_descriptions': Arg(
             ("-d", "--descriptions"),
