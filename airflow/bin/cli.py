@@ -186,6 +186,12 @@ def trigger_dag(args):
 
 
 def batch_set_pools(args):
+    """
+    set a batch of Airflow pools
+
+    :param args: arguments from argparser
+    :return:
+    """
     session = settings.Session()
     pool_names = args.names
     pool_slots = args.slots
@@ -205,21 +211,27 @@ def batch_set_pools(args):
             session.query(Pool)
             .filter(Pool.pool.in_(pool_names))
             .all())
-        for pool in existing_pools:
-            pool_metadata = pool_metadata_by_name.get(pool.pool)
-            if pool_metadata.get('slots') != pool.slots or pool_metadata.get('description') != pool.description:
-                pool.slots = pool_metadata.get('slots')
-                pool.description = pool_metadata.get('description')
+        for current_pool in existing_pools:
+            pool_metadata = pool_metadata_by_name.get(current_pool.pool)
+            input_pool_slots = pool_metadata.get('slots')
+            input_pool_desc = pool_metadata.get('description')
+            if int(input_pool_slots) != int(current_pool.slots) or input_pool_desc != current_pool.description:
+                print("Need to update pool: {}".format(current_pool.pool))
+                print("Original slots: {}\nNew slots:{}".format(current_pool.slots, input_pool_slots))
+                print("Original description: {}\nNew description:{}".format(current_pool.description, input_pool_desc))
+                current_pool.slots = input_pool_slots
+                current_pool.description = input_pool_desc
             else:
-                print("No need to update {} pool".format(pool.pool))
-                del pool_metadata_by_name[pool.pool]
+                print("No need to update pool: {}".format(current_pool.pool))
+            del pool_metadata_by_name[current_pool.pool]
 
         for pool_name, pool_metadata in pool_metadata_by_name.iteritems():
-            pool = Pool(
-                pool=pool_name,
-                slots=int(pool_metadata.get('slots')),
-                description=pool_metadata.get('description'))
-            session.add(pool)
+            session.add(
+                Pool(
+                    pool=pool_name,
+                    slots=int(pool_metadata.get('slots')),
+                    description=pool_metadata.get('description'))
+            )
         session.commit()
 
 
