@@ -206,8 +206,8 @@ def pools(args):
         .all())
     for current_pool in existing_pools:
         pool_slots_and_description = pools_config.get(current_pool.pool)
-        input_pool_slots = pool_slots_and_description.get('slot_counts')
-        input_pool_desc = pool_slots_and_description.get('description')
+        input_pool_slots = pool_slots_and_description.get('slot_counts', 3)
+        input_pool_desc = pool_slots_and_description.get('description', '')
         if int(input_pool_slots) != int(current_pool.slots) or input_pool_desc != current_pool.description:
             print("Need to update pool: {}".format(current_pool.pool))
             print("Original slots: {}\nNew slots:{}".format(current_pool.slots, input_pool_slots))
