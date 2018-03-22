@@ -39,6 +39,7 @@ import threading
 import traceback
 import time
 import psutil
+import yaml
 
 import airflow
 from airflow import api
@@ -185,54 +186,47 @@ def trigger_dag(args):
     logging.info(message)
 
 
-def batch_set_pools(args):
+def pools(args):
     """
     set a batch of Airflow pools
 
-    :param args: arguments from argparser
+    :param args: filepath to airflow pools yaml file
     :return:
     """
+    with open(args.filepath, 'r') as stream:
+        try:
+            pools_config = yaml.load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
     session = settings.Session()
-    pool_names = args.names
-    pool_slots = args.slots
-    pool_descriptions = args.descriptions
-    print("Number of pool names input: {}".format(len(pool_names)))
-    print("Number of pool slots count input: {}".format(len(pool_slots)))
-    print("Number of pool description input: {}".format(len(pool_descriptions)))
+    existing_pools = (
+        session.query(Pool)
+        .filter(Pool.pool.in_(pools_config.keys()))
+        .all())
+    for current_pool in existing_pools:
+        pool_slots_and_description = pools_config.get(current_pool.pool)
+        input_pool_slots = pool_slots_and_description.get('slot_counts')
+        input_pool_desc = pool_slots_and_description.get('description')
+        if int(input_pool_slots) != int(current_pool.slots) or input_pool_desc != current_pool.description:
+            print("Need to update pool: {}".format(current_pool.pool))
+            print("Original slots: {}\nNew slots:{}".format(current_pool.slots, input_pool_slots))
+            print("Original description: {}\nNew description:{}".format(current_pool.description, input_pool_desc))
+            current_pool.slots = input_pool_slots
+            current_pool.description = input_pool_desc
+        else:
+            print("No need to update pool: {}".format(current_pool.pool))
+        del pools_config[current_pool.pool]
 
-    if len(pool_names) != len(pool_slots) or len(pool_names) != len(pool_descriptions):
-        print("Numbers of names, pools, descriptions are not equal to each other")
-    else:
-        pool_metadata_by_name = dict()
-        for i in range(len(pool_names)):
-            pool_metadata_by_name[pool_names[i]] = {'slots': pool_slots[i],
-                                                    'description': pool_descriptions[i]}
-        existing_pools = (
-            session.query(Pool)
-            .filter(Pool.pool.in_(pool_names))
-            .all())
-        for current_pool in existing_pools:
-            pool_metadata = pool_metadata_by_name.get(current_pool.pool)
-            input_pool_slots = pool_metadata.get('slots')
-            input_pool_desc = pool_metadata.get('description')
-            if int(input_pool_slots) != int(current_pool.slots) or input_pool_desc != current_pool.description:
-                print("Need to update pool: {}".format(current_pool.pool))
-                print("Original slots: {}\nNew slots:{}".format(current_pool.slots, input_pool_slots))
-                print("Original description: {}\nNew description:{}".format(current_pool.description, input_pool_desc))
-                current_pool.slots = input_pool_slots
-                current_pool.description = input_pool_desc
-            else:
-                print("No need to update pool: {}".format(current_pool.pool))
-            del pool_metadata_by_name[current_pool.pool]
-
-        for pool_name, pool_metadata in pool_metadata_by_name.iteritems():
-            session.add(
-                Pool(
-                    pool=pool_name,
-                    slots=int(pool_metadata.get('slots')),
-                    description=pool_metadata.get('description'))
-            )
-        session.commit()
+    for pool_name, pool_slots_and_description in pools_config.iteritems():
+        print("Need to add pool: {}".format(pool_name))
+        session.add(
+            Pool(
+                pool=pool_name,
+                slots=int(pool_slots_and_description.get('slot_counts')),
+                description=pool_slots_and_description.get('description'))
+        )
+    session.commit()
 
 
 def pool(args):
@@ -1312,19 +1306,10 @@ class CLIFactory(object):
             ("-x", "--delete"),
             metavar="NAME",
             help="Delete a pool"),
-        # batch_set_pools
-        'pool_names': Arg(
-            ("-n", "--names"),
-            nargs='+',
-            help="Pool names"),
-        'pool_slots': Arg(
-            ("-s", "--slots"),
-            nargs='+',
-            help="Pool slot counts"),
-        'pool_descriptions': Arg(
-            ("-d", "--descriptions"),
-            nargs='+',
-            help="Pool descriptions"),
+        # pools
+        'airflow_pool_yaml_filepath': Arg(
+            ("-f", "--filepath"),
+            help="Set airflow pools based on yaml configuration"),
         # variables
         'set': Arg(
             ("-s", "--set"),
@@ -1566,9 +1551,9 @@ class CLIFactory(object):
             'help': "CRUD operations on pools",
             "args": ('pool_set', 'pool_get', 'pool_delete'),
         }, {
-            'func': batch_set_pools,
+            'func': pools,
             'help': "CRUD operations on a batch of pools",
-            "args": ('pool_names', 'pool_slots', 'pool_descriptions'),
+            "args": ('airflow_pool_yaml_filepath',),
         }, {
             'func': variables,
             'help': "CRUD operations on variables",
