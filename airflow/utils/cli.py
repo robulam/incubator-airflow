@@ -17,27 +17,31 @@ Utilities module for cli
 """
 from __future__ import absolute_import
 
-import logging
 import functools
-import os
+import getpass
+import json
+import socket
 import sys
+from argparse import Namespace
 from datetime import datetime
 
 import airflow.models
-from airflow.utils import action_loggers
+from airflow.utils import cli_action_loggers
 
 
 def action_logging(f):
     """
-    Decorates function to execute function at the same time submitting action_logging but in CLI context
-    Also, builds metrics dict and submits action_loggers.
-    In metrics dict:
+    Decorates function to execute function at the same time submitting action_logging
+    but in CLI context. It will call action logger callbacks twice,
+    one for pre-execution and the other one for post-execution.
+
+    Action logger will be called with below keyword parameters:
         sub_command : name of sub-command
         start_datetime : start datetime instance by utc
         end_datetime : end datetime instance by utc
         full_command : full command line arguments
         user : current user
-        log : airflow.models.Log DAO instance
+        log : airflow.models.Log ORM instance
         dag_id : dag id (optional)
         task_id : task_id (optional)
         execution_date : execution date (optional)
@@ -48,49 +52,61 @@ def action_logging(f):
     """
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        metrics = _build_metrics(f.__name__, *args)
-
+        """
+        An wrapper for cli functions. It assumes to have Namespace instance
+        at 1st positional argument
+        :param args: Positional argument. It assumes to have Namespace instance
+        at 1st positional argument
+        :param kwargs: A passthrough keyword argument
+        """
+        assert args
+        assert isinstance(args[0], Namespace), \
+            "1st positional argument should be argparse.Namespace instance, " \
+            "but {}".format(args[0])
+        metrics = _build_metrics(f.__name__, args[0])
+        cli_action_loggers.on_pre_execution(**metrics)
         try:
             return f(*args, **kwargs)
-        except:
-            metrics['error'] = sys.exc_info()[1]
-            raise
+        except Exception as e:
+            metrics['error'] = e
+            raise e
         finally:
             metrics['end_datetime'] = datetime.utcnow()
-            try:
-                action_loggers.submit(**metrics)
-            except:
-                logging.error("Failed to submit action_logger", exc_info=1)
+            cli_action_loggers.on_post_execution(**metrics)
 
     return wrapper
 
 
-def _build_metrics(func_name, *args):
+def _build_metrics(func_name, namespace):
     """
     Builds metrics dict from function args
-    It assumes that function arguments is from airflow.bin.cli module's function and has Namespace instance where
-    it optionally contains "dag_id", "task_id", and "execution_date".
+    It assumes that function arguments is from airflow.bin.cli module's function
+    and has Namespace instance where it optionally contains "dag_id", "task_id",
+    and "execution_date".
 
     :param func_name: name of function
-    :param args: args
+    :param namespace: Namespace instance from argparse
     :return: dict with metrics
     """
+
     metrics = {'sub_command': func_name}
     metrics['start_datetime'] = datetime.utcnow()
-    metrics['full_command'] = str(list(sys.argv))
-    metrics['user'] = os.environ.get('USER')
+    metrics['full_command'] = '{}'.format(list(sys.argv))
+    metrics['user'] = getpass.getuser()
 
-    if args:
-        tmp_dic = vars(args[0])
-        metrics['dag_id'] = tmp_dic.get('dag_id')
-        metrics['task_id'] = tmp_dic.get('task_id')
-        metrics['execution_date'] = tmp_dic.get('execution_date')
+    assert isinstance(namespace, Namespace)
+    tmp_dic = vars(namespace)
+    metrics['dag_id'] = tmp_dic.get('dag_id')
+    metrics['task_id'] = tmp_dic.get('task_id')
+    metrics['execution_date'] = tmp_dic.get('execution_date')
+    metrics['host_name'] = socket.gethostname()
 
+    extra = json.dumps(dict((k, metrics[k]) for k in ('host_name', 'full_command')))
     log = airflow.models.Log(
-        event=func_name,
+        event='cli_{}'.format(func_name),
         task_instance=None,
         owner=metrics['user'],
-        extra=str(metrics['full_command']),
+        extra=extra,
         task_id=metrics.get('task_id'),
         dag_id=metrics.get('dag_id'),
         execution_date=metrics.get('execution_date'))
