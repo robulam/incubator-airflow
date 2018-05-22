@@ -153,7 +153,6 @@ def backfill(args, dag=None):
 
     if schedule_interval:
         dag.schedule_interval = schedule_interval
-        dag._schedule_interval = schedule_interval
 
     if args.task_regex:
         dag = dag.sub_dag(
