@@ -163,6 +163,10 @@ def backfill(args, dag=None):
             task_regex=args.task_regex,
             include_upstream=not args.ignore_dependencies)
 
+    run_conf = None
+    if args.conf:
+        run_conf = json.loads(args.conf)
+
     if args.dry_run:
         print("Dry run of DAG {0} on {1}".format(args.dag_id,
                                                  args.start_date))
@@ -182,7 +186,10 @@ def backfill(args, dag=None):
             ignore_first_depends_on_past=args.ignore_first_depends_on_past,
             ignore_task_deps=args.ignore_dependencies,
             pool=args.pool,
-            delay_on_limit_secs=args.delay_on_limit)
+            delay_on_limit_secs=args.delay_on_limit,
+            verbose=args.verbose,
+            conf=run_conf,
+        )
 
 
 def trigger_dag(args):
@@ -1478,7 +1485,8 @@ class CLIFactory(object):
                 'dag_id', 'task_regex', 'start_date', 'end_date',
                 'mark_success', 'local', 'donot_pickle', 'include_adhoc',
                 'bf_ignore_dependencies', 'bf_ignore_first_depends_on_past',
-                'subdir', 'pool', 'delay_on_limit', 'dry_run')
+                'subdir', 'pool', 'delay_on_limit', 'dry_run', 'verbose', 'conf'
+            )
         }, {
             'func': list_tasks,
             'help': "List the tasks within a DAG",

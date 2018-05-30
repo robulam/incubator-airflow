@@ -1922,6 +1922,7 @@ class BackfillJob(BaseJob):
             ignore_task_deps=False,
             pool=None,
             delay_on_limit_secs=1.0,
+            conf=None,
             *args, **kwargs):
         self.dag = dag
         self.dag_id = dag.dag_id
@@ -1934,6 +1935,7 @@ class BackfillJob(BaseJob):
         self.ignore_task_deps = ignore_task_deps
         self.pool = pool
         self.delay_on_limit_secs = delay_on_limit_secs
+        self.conf = conf
         super(BackfillJob, self).__init__(*args, **kwargs)
 
     def _update_counters(self, ti_status):
@@ -2058,7 +2060,8 @@ class BackfillJob(BaseJob):
             start_date=datetime.utcnow(),
             state=State.RUNNING,
             external_trigger=False,
-            session=session
+            session=session,
+            conf=self.conf,
         )
 
         # set required transient field
