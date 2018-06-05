@@ -3,7 +3,7 @@
 // reference them
 
 // FIXME: Change to prod before pushing
-var DP_ANNOUNCEMENTS_FEED_URL = "https://dataplatformadmin-legacy-astahlman-onebox.dev.lyft.net/announcements.atom"
+var DP_ANNOUNCEMENTS_FEED_URL = "https://dataplatformadmin.lyft.net/announcements.atom"
 
 var setCss = function(el, attrs) {
     el.setAttribute("style", attrs.join('; '));
