@@ -707,7 +707,7 @@ class DagPickle(Base):
         self.pickle = dag
 
 
-class TaskInstance(Base):
+class TaskInstance(Base, LoggingMixin):
     """
     Task instances store the state of a task instance. This table is the
     authority and single source of truth around what tasks have run and the
@@ -1115,7 +1115,7 @@ class TaskInstance(Base):
         """
         dep_context = dep_context or DepContext()
         failed = False
-        verbose_aware_logger = self.log.info if verbose else self.log.debug
+        verbose_aware_logger = self.logger.info if verbose else self.logger.debug
         for dep_status in self.get_failed_dep_statuses(
                 dep_context=dep_context,
                 session=session):
