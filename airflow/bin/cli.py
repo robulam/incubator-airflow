@@ -261,12 +261,7 @@ def pools(args):
     """
     session = settings.Session()
     with open(args.filepath, 'r') as stream:
-        try:
-            pools_config = yaml.load(stream)
-        except yaml.YAMLError as e:
-            print("Failed to load: {}".format(args.filepath))
-            print(traceback.format_exc())
-            raise e
+        pools_config = yaml.load(stream)
     _pools(session, pools_config)
     session.close()
 
@@ -309,7 +304,7 @@ def _pools(session, pools_config):
             print("No need to update pool: {}".format(existing_pool.pool))
 
     for pool_to_update in pools_to_update:
-        print("Need to update pool: {}".format(pool_to_update))
+        print("Need to add/update pool: {}".format(pool_to_update))
         session.add(pool_to_update)
 
     for pool_to_delete in pools_to_delete:
