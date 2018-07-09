@@ -263,10 +263,10 @@ def pools(args):
     with open(args.filepath, 'r') as stream:
         try:
             pools_config = yaml.load(stream)
-        except yaml.YAMLError:
+        except yaml.YAMLError as e:
             print("Failed to load: {}".format(args.filepath))
             print(traceback.format_exc())
-            return
+            raise e
     _pools(session, pools_config)
     session.close()
 

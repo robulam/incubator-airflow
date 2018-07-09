@@ -62,7 +62,6 @@ from airflow.exceptions import AirflowException
 from airflow.configuration import AirflowConfigException
 
 import six
-import tempfile
 
 NUM_EXAMPLE_DAGS = 18
 DEV_NULL = '/dev/null'
@@ -1055,8 +1054,7 @@ class CliTests(unittest.TestCase):
         # Persist DAGs
 
     def test_pools_add_pool_if_not_exist(self):
-        session = mock.MagicMock()
-        session.add = mock.MagicMock()
+        session = self._expect_session_returns([])
 
         pools_config = {
             'pool1': {
@@ -1070,32 +1068,30 @@ class CliTests(unittest.TestCase):
         self.assertEqual('pool1', session.add.call_args_list[0][0][0].pool)
 
     def test_pools_delete_pool_if_not_defined(self):
-        session = mock.MagicMock()
-        session.delete = mock.MagicMock()
-        query = session.query.return_value
-        query.all.return_value = [
-            Pool(
-                pool='pool1',
-                slots=1,
-                description='desc',
-            )
-        ]
+        session = self._expect_session_returns(
+            [
+                Pool(
+                    pool='pool1',
+                    slots=1,
+                    description='desc',
+                ),
+            ]
+        )
 
         cli._pools(session, {})
 
         self.assertEqual('pool1', session.delete.call_args_list[0][0][0].pool)
 
     def test_pools_update_pool_if_value_changes(self):
-        session = mock.MagicMock()
-        session.add = mock.MagicMock()
-        query = session.query.return_value
-        query.all.return_value = [
-            Pool(
-                pool='pool1',
-                slots=1,
-                description='desc',
-            )
-        ]
+        session = self._expect_session_returns(
+            [
+                Pool(
+                    pool='pool1',
+                    slots=1,
+                    description='desc',
+                )
+            ]
+        )
 
         pools_config = {
             'pool1': {
@@ -1108,6 +1104,14 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual('pool1', session.add.call_args_list[0][0][0].pool)
         self.assertEqual('haha', session.add.call_args_list[0][0][0].description)
+
+    def _expect_session_returns(self, existing_pools):
+        session = mock.MagicMock()
+        session.add = mock.MagicMock()
+        session.delete = mock.MagicMock()
+        query = session.query.return_value
+        query.all.return_value = existing_pools
+        return session
 
     def test_cli_list_dags(self):
         args = self.parser.parse_args(['list_dags', '--report'])
