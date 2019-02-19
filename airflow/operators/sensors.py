@@ -73,6 +73,12 @@ class BaseSensorOperator(BaseOperator):
 
     def execute(self, context):
         started_at = datetime.now()
+
+        logging.info("Started execution at {started_at} with timeout={timeout} seconds.".format(
+            started_at=started_at,
+            timeout=self.timeout,
+        ))
+
         while not self.poke(context):
             if (datetime.now() - started_at).total_seconds() > self.timeout:
                 if self.soft_fail:
