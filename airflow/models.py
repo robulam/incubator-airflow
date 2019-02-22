@@ -3676,7 +3676,6 @@ class DAG(BaseDag, LoggingMixin):
             ignore_first_depends_on_past=False,
             pool=None,
             delay_on_limit_secs=1.0,
-            verbose=False,
             conf=None,
     ):
         """
