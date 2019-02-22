@@ -3725,7 +3725,6 @@ class DAG(BaseDag, LoggingMixin):
             ignore_first_depends_on_past=ignore_first_depends_on_past,
             pool=pool,
             delay_on_limit_secs=delay_on_limit_secs,
-            verbose=verbose,
             conf=conf,
         )
         job.run()
