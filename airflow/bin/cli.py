@@ -1165,6 +1165,9 @@ class CLIFactory(object):
         'mark_success': Arg(
             ("-m", "--mark_success"),
             "Mark jobs as succeeded without running them", "store_true"),
+        'verbose': Arg(
+            ("-v", "--verbose"),
+            "Make logging output more verbose", "store_true"),
         'local': Arg(
             ("-l", "--local"),
             "Run the task using the LocalExecutor", "store_true"),
