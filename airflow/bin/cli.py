@@ -187,7 +187,6 @@ def backfill(args, dag=None):
             ignore_task_deps=args.ignore_dependencies,
             pool=args.pool,
             delay_on_limit_secs=args.delay_on_limit,
-            verbose=args.verbose,
             conf=run_conf,
         )
 
@@ -1165,9 +1164,6 @@ class CLIFactory(object):
         'mark_success': Arg(
             ("-m", "--mark_success"),
             "Mark jobs as succeeded without running them", "store_true"),
-        'verbose': Arg(
-            ("-v", "--verbose"),
-            "Make logging output more verbose", "store_true"),
         'local': Arg(
             ("-l", "--local"),
             "Run the task using the LocalExecutor", "store_true"),
@@ -1488,7 +1484,7 @@ class CLIFactory(object):
                 'dag_id', 'task_regex', 'start_date', 'end_date',
                 'mark_success', 'local', 'donot_pickle', 'include_adhoc',
                 'bf_ignore_dependencies', 'bf_ignore_first_depends_on_past',
-                'subdir', 'pool', 'delay_on_limit', 'dry_run', 'verbose', 'conf'
+                'subdir', 'pool', 'delay_on_limit', 'dry_run', 'conf'
             )
         }, {
             'func': list_tasks,
