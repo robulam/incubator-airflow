@@ -363,23 +363,22 @@ class DagStatTest(unittest.TestCase):
         res = qry2.all()
         for stat in res:
             self.assertFalse(stat.dirty)
-(??)
+
 
 class DagRunTest(unittest.TestCase):
 
     def setUp(self):
         self.dagbag = models.DagBag(dag_folder=TEST_DAG_FOLDER)
 
-    def create_dag_run(self, dag_id, state=State.RUNNING, task_states=None):
+    def create_dag_run(self, dag, state=State.RUNNING, task_states=None, execution_date=None):
         now = datetime.datetime.now()
-        dag = self.dagbag.get_dag(dag_id)
         if execution_date is None:
             execution_date = now
         dag_run = dag.create_dagrun(
             run_id='manual__' + now.isoformat(),
             execution_date=execution_date,
             start_date=now,
-            state=State.RUNNING,
+            state=state,
             external_trigger=False,
         )
 
@@ -442,7 +441,8 @@ class DagRunTest(unittest.TestCase):
             'test_state_skipped2': State.NONE,
         }
         # dags/test_dagrun_short_circuit_false.py
-        dag_run = self.create_dag_run('test_dagrun_short_circuit_false',
+        dag = self.dagbag.get_dag('test_dagrun_short_circuit_false')
+        dag_run = self.create_dag_run(dag,
                                       state=State.RUNNING,
                                       task_states=initial_task_states)
         updated_dag_state = dag_run.update_state()
@@ -475,7 +475,7 @@ class DagRunTest(unittest.TestCase):
             'test_state_skipped2': State.SKIPPED,
         }
         # dags/test_dagrun_short_circuit_false.py
-        dag_run = self.create_dag_run('test_dagrun_short_circuit_false',
+        dag_run = self.create_dag_run(dag,
                                       state=State.RUNNING,
                                       task_states=initial_task_states)
         updated_dag_state = dag_run.update_state()
