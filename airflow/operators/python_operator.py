@@ -114,8 +114,10 @@ class BranchPythonOperator(PythonOperator, SkipMixin):
         logging.debug("Downstream task_ids {}".format(downstream_tasks))
 
         skip_tasks = [t for t in downstream_tasks if t.task_id != branch]
+        all_skip_tasks = [self.find_all_downstream_tasks(downstream_task) for downstream_task in skip_tasks]
+        all_skip_tasks.extend(skip_tasks)
         if downstream_tasks:
-            self.skip(context['dag_run'], context['ti'].execution_date, skip_tasks)
+            self.skip(context['dag_run'], context['ti'].execution_date, all_skip_tasks)
 
         logging.info("Done.")
 

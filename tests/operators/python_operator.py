@@ -122,6 +122,13 @@ class BranchOperatorTest(unittest.TestCase):
         self.branch_1.set_upstream(self.branch_op)
         self.branch_2 = DummyOperator(task_id='branch_2', dag=self.dag)
         self.branch_2.set_upstream(self.branch_op)
+        self.branch_2_sub_branch = BranchPythonOperator(task_id='make_choice_skipped',
+                                                        dag=self.dag,
+                                                        python_callable=lambda: 'branch_1')
+        self.sub_branch_1 = DummyOperator(task_id='sub_branch_1', dag=self.dag)
+        self.sub_branch_1.set_upstream(self.branch_2_sub_branch)
+        self.sub_branch_2 = DummyOperator(task_id='sub_branch_2', dag=self.dag)
+        self.sub_branch_2.set_upstream(self.branch_2_sub_branch)
         self.dag.clear()
 
     def test_without_dag_run(self):
@@ -141,7 +148,7 @@ class BranchOperatorTest(unittest.TestCase):
             elif ti.task_id == 'branch_1':
                 # should not exist
                 raise
-            elif ti.task_id == 'branch_2':
+            elif ti.task_id in ['branch_2', 'make_choice_skipped', 'sub_branch_1', 'sub_branch_2']:
                 self.assertEquals(ti.state, State.SKIPPED)
             else:
                 raise
