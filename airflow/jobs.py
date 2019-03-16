@@ -843,12 +843,21 @@ class SchedulerJob(BaseJob):
                 return
 
             if next_run_date and period_end and period_end <= datetime.now():
+                start_date = datetime.now()
                 next_run = dag.create_dagrun(
                     run_id='scheduled__' + next_run_date.isoformat(),
                     execution_date=next_run_date,
-                    start_date=datetime.now(),
+                    start_date=start_date,
                     state=State.RUNNING,
                     external_trigger=False
+                )
+
+                schedule_delay_sec = (start_date - next_run_date).total_seconds()
+                Stats.gauge(
+                    stat='dag_run.schedule_delay_sec.{dag_id}'.format(
+                        dag_id=dag.dag_id,
+                    ),
+                    value=schedule_delay_sec,
                 )
                 return next_run
 
