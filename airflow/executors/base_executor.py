@@ -15,6 +15,7 @@
 from builtins import range
 
 from airflow import configuration
+from airflow.settings import Stats
 from airflow.utils.state import State
 from airflow.utils.logging import LoggingMixin
 
@@ -100,9 +101,16 @@ class BaseExecutor(LoggingMixin):
         else:
             open_slots = self.parallelism - len(self.running)
 
-        self.logger.debug("{} running task instances".format(len(self.running)))
-        self.logger.debug("{} in queue".format(len(self.queued_tasks)))
-        self.logger.debug("{} open slots".format(open_slots))
+        num_running_tasks = len(self.running)
+        num_queued_tasks = len(self.queued_tasks)
+
+        self.log.debug("%s running task instances", num_running_tasks)
+        self.log.debug("%s in queue", num_queued_tasks)
+        self.log.debug("%s open slots", open_slots)
+
+        Stats.gauge('executor.open_slots', open_slots)
+        Stats.gauge('executor.queued_tasks', num_queued_tasks)
+        Stats.gauge('executor.running_tasks', num_running_tasks)
 
         sorted_queue = sorted(
             [(k, v) for k, v in self.queued_tasks.items()],
