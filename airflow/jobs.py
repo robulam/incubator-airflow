@@ -1020,11 +1020,13 @@ class SchedulerJob(BaseJob):
         # Go through each pool, and queue up a task for execution if there are
         # any open slots in the pool.
         for pool, task_instances in pool_to_task_instances.items():
+            pool_name = pool
             if not pool:
                 # Arbitrary:
                 # If queued outside of a pool, trigger no more than
                 # non_pooled_task_slot_count per run
                 open_slots = conf.getint('core', 'non_pooled_task_slot_count')
+                pool_name = 'not_pooled'
             else:
                 if pool not in pools:
                     self.logger.warning(
@@ -1049,10 +1051,13 @@ class SchedulerJob(BaseJob):
             # DAG IDs with running tasks that equal the concurrency limit of the dag
             dag_id_to_possibly_running_task_count = {}
 
-            for task_instance in priority_sorted_task_instances:
+            # Number of tasks that cannot be scheduled because of no open slot in pool
+            num_starving_tasks = 0
+            for current_index, task_instance in enumerate(priority_sorted_task_instances):
                 if open_slots <= 0:
                     self.logger.info("No more slots free")
                     # Can't schedule any more since there are no more open slots.
+                    num_starving_tasks = len(priority_sorted_task_instances) - current_index
                     break
 
                 if self.executor.has_task(task_instance):
@@ -1152,6 +1157,9 @@ class SchedulerJob(BaseJob):
 
                 open_slots -= 1
                 dag_id_to_possibly_running_task_count[dag_id] += 1
+            
+            Stats.gauge('pool.starving_tasks.{pool_name}'.format(pool_name=pool_name),
+                        num_starving_tasks)
 
     def _process_dags(self, dagbag, dags, tis_out):
         """
