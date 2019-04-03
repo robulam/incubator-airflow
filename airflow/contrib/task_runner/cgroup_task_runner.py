@@ -25,7 +25,7 @@ import uuid
 from cgroupspy import trees
 import psutil
 
-from airflow.task_runner.base_task_runner import BaseTaskRunner
+from airflow.task.task_runner.base_task_runner import BaseTaskRunner
 from airflow.utils.helpers import reap_process_group
 
 
@@ -109,17 +109,6 @@ class CgroupTaskRunner(BaseTaskRunner):
         parent.delete_cgroup(node.name)
 
     def start(self):
-        # Use bash if it's already in a cgroup
-        cgroups = self._get_cgroup_names()
-        if cgroups["cpu"] != "/" or cgroups["memory"] != "/":
-            self.log.debug(
-                "Already running in a cgroup (cpu: %s memory: %s) so not "
-                "creating another one",
-                cgroups.get("cpu"), cgroups.get("memory")
-            )
-            self.process = self.run_command()
-            return
-
         # Create a unique cgroup name
         cgroup_name = "airflow/{}/{}".format(datetime.datetime.utcnow().
                                              strftime("%Y-%m-%d"),
@@ -127,6 +116,9 @@ class CgroupTaskRunner(BaseTaskRunner):
 
         self.mem_cgroup_name = "memory/{}".format(cgroup_name)
         self.cpu_cgroup_name = "cpu/{}".format(cgroup_name)
+
+        self.log.info("mem_cgroup_name: {}".format(self.mem_cgroup_name))
+        self.log.info("cpu_cgroup_name: {}".format(self.cpu_cgroup_name))
 
         # Get the resource requirements from the task
         task = self._task_instance.task
