@@ -67,6 +67,7 @@ class MySqlTest(unittest.TestCase):
             sql=sql, dag=self.dag)
         t.run(start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True)
 
+    @unittest.skip
     def mysql_hook_test_bulk_load(self):
         records = ("foo", "bar", "baz")
 
@@ -114,6 +115,7 @@ class MySqlTest(unittest.TestCase):
             dag=self.dag)
         t.run(start_date=DEFAULT_DATE, end_date=DEFAULT_DATE, ignore_ti_state=True)
 
+    @unittest.skip
     def test_overwrite_schema(self):
         """
         Verifies option to overwrite connection schema
