@@ -90,6 +90,7 @@ class MySqlTest(unittest.TestCase):
                 results = tuple(result[0] for result in c.fetchall())
                 assert sorted(records) == sorted(results)
 
+    @unittest.skip
     def test_mysql_to_mysql(self):
         sql = "SELECT * FROM INFORMATION_SCHEMA.TABLES LIMIT 100;"
         import airflow.operators.generic_transfer
